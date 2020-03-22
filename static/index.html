@@ -22,7 +22,7 @@
     "/>
     <script src="json2.js"></script>
   </head> 
-  <body bgcolor="white" height="100%" width="100%"> 
+  <body bgcolor="LightCyan" height="100%" width="100%"> 
     <div id="debug"></div>
     <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas> 
 
@@ -72,7 +72,7 @@ function prepEntity(entity) {
 function clearFrame() {
     with(context) {
 	moveTo(0,0);
-	fillStyle = "#000";
+	fillStyle = "LightCyan";
 	fillRect(0,0,W,H);
     }
 
@@ -125,6 +125,10 @@ function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just modified!
+    newData = {}
+    newData[entity]=data;
+    socket.send(JSON.stringify(newData));
+
 }
 var counter = 0;
 function addEntityWithoutName(data) {
@@ -230,16 +234,24 @@ mouse = (function() {
 
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
+function getRandomColor() {
+  var letters = '0123456789ABCDEF';
+  var color = '#';
+  for (var i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'white'});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'hotpink'});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
+    addEntityWithoutName({'x':x,'y':y,'colour':getRandomColor(),
                           'radius':10});
 });
 
@@ -248,6 +260,12 @@ function update() {
     drawFrame();
 }
 
+function updateWorld(message){
+    for (var entity in message){
+        world[entity]=message[entity];
+    }
+    drawNextFrame();
+}
 
 function wsSetup() {
     var url = "ws://"+host+"/subscribe";   
@@ -261,7 +279,9 @@ function wsSetup() {
     socket.onmessage = function(msg) {  
         try {
             debug("WebSocket Recv:" + msg.data);
-            //XXX: TODO What are you going to do here?            
+            //XXX: TODO What are you going to do here?    
+            var message = JSON.parse(msg.data);
+            updateWorld(message);
         } catch (e) {
             alert("socket on message: " + e);
         }
